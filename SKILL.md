@@ -15,7 +15,11 @@ HWPX는 ZIP + XML 구조이므로 ZIP-level 텍스트 치환으로 안전하게 
 
 ```bash
 pip install python-hwpx --break-system-packages
+# image_text 필드(학교명을 로고 자리에 이미지로 표시)를 사용하려면:
+pip install Pillow --break-system-packages
 ```
+
+macOS 시스템 Python에서 설치가 막히면 가상환경(`python3 -m venv .venv && source .venv/bin/activate`)을 먼저 만들거나 `uv pip install --system python-hwpx Pillow` 사용.
 
 ---
 
@@ -147,6 +151,7 @@ render(
 | `single` | placeholder 등장 위치 **모두** 같은 값으로 치환 | 문자열 |
 | `sequential` | placeholder 등장 위치를 **순서대로** 다른 값으로 치환 | 리스트 |
 | `date` | 날짜 객체·"today"·문자열을 `format` 으로 자동 변환 | 문자열/date/`"today"` |
+| `image_text` | 텍스트를 PNG 이미지로 렌더링해 ZIP 내 이미지를 교체 (학교명을 로고 영역에 표시할 때 사용). placeholder 값은 ZIP 내부 이미지 경로 (예: `BinData/image1.png`). Pillow 필요. | 문자열 |
 
 **중요**: `placeholder` 는 양식 안에 실제로 들어있는 텍스트와 **글자 한 자도 다르지 않아야** 한다. 공백 포함. `scan_template.py` 로 추출한 값을 그대로 쓰는 것이 안전하다.
 
