@@ -82,6 +82,92 @@ def _zip_replace_sequential(hwpx_path: str, placeholder: str, values: list[str])
     os.replace(tmp, hwpx_path)
 
 
+def _zip_replace_image(hwpx_path: str, image_path_in_zip: str, new_image_bytes: bytes) -> None:
+    """HWPX ZIP 내부의 특정 이미지 파일을 새 이미지로 교체.
+
+    Args:
+        hwpx_path: HWPX 파일 경로
+        image_path_in_zip: ZIP 내부 이미지 경로 (예: 'BinData/image1.png')
+        new_image_bytes: 새 이미지의 바이트 데이터 (PNG 권장)
+    """
+    tmp = hwpx_path + ".tmp"
+    with zipfile.ZipFile(hwpx_path, "r") as zin:
+        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                if item.filename == image_path_in_zip:
+                    zout.writestr(item, new_image_bytes)
+                else:
+                    zout.writestr(item, zin.read(item.filename))
+    os.replace(tmp, hwpx_path)
+
+
+def _render_text_image(text: str, width: int = 2000, height: int = 825,
+                        bg_color: tuple = (255, 255, 255, 0),
+                        text_color: tuple = (40, 40, 40, 255)) -> bytes:
+    """텍스트를 PNG 이미지로 렌더링하여 바이트로 반환.
+
+    HWPX 양식의 로고 자리에 학교명/기관명을 텍스트로 넣을 때 사용.
+
+    Args:
+        text: 이미지에 들어갈 텍스트 (학교명 등)
+        width, height: 이미지 크기 (기본 2000x825 — Brother 로고 영역 비율)
+        bg_color: 배경색 (기본 투명)
+        text_color: 텍스트 색상 (기본 진회색)
+
+    Returns:
+        PNG 바이트 데이터
+    """
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except ImportError:
+        raise ImportError(
+            "image_text 필드를 사용하려면 Pillow가 필요합니다.\n"
+            "  pip install Pillow"
+        )
+
+    img = Image.new("RGBA", (width, height), bg_color)
+    draw = ImageDraw.Draw(img)
+
+    # 한글 지원 폰트 자동 탐색 (시스템별 후보 경로)
+    font_candidates = [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",       # macOS
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",
+        "C:/Windows/Fonts/malgunbd.ttf",                     # Windows
+        "C:/Windows/Fonts/malgun.ttf",
+    ]
+    font = None
+    # 텍스트 길이에 따라 동적으로 크기 결정
+    base_size = max(80, min(280, int(width / max(len(text), 4) * 1.5)))
+    for fp in font_candidates:
+        if os.path.exists(fp):
+            try:
+                font = ImageFont.truetype(fp, base_size)
+                break
+            except Exception:
+                continue
+    if font is None:
+        font = ImageFont.load_default()
+
+    # 텍스트 가운데 정렬
+    bbox = draw.textbbox((0, 0), text, font=font)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    # textbbox는 baseline 기준이라 y 오프셋 보정 필요
+    x = (width - tw) // 2 - bbox[0]
+    y = (height - th) // 2 - bbox[1]
+    draw.text((x, y), text, font=font, fill=text_color)
+
+    # PNG 바이트로 인코딩
+    import io
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def _xml_escape(s: str) -> str:
     """XML 텍스트 노드용 최소 이스케이프."""
     return (
@@ -204,6 +290,7 @@ def render(
     # 2) 필드 분류
     single_map: dict[str, str] = {}
     sequential_jobs: list[tuple[str, list[str]]] = []
+    image_jobs: list[tuple[str, str]] = []  # (zip 내 이미지 경로, 텍스트)
     missing_required: list[str] = []
 
     for field in meta.get("fields", []):
@@ -233,6 +320,10 @@ def render(
                 values = values[:max_count]
             sequential_jobs.append((placeholder, values))
 
+        elif ftype == "image_text":
+            # placeholder 가 ZIP 내부 이미지 경로 역할 (예: 'BinData/image1.png')
+            image_jobs.append((placeholder, str(value)))
+
         else:
             raise ValueError(f"알 수 없는 필드 타입: {ftype} (필드: {key})")
 
@@ -249,7 +340,12 @@ def render(
     for placeholder, values in sequential_jobs:
         _zip_replace_sequential(output_path, placeholder, values)
 
-    # 5) 네임스페이스 후처리 (필수)
+    # 5) 이미지 텍스트 치환 (학교명 → 이미지)
+    for image_path_in_zip, text_value in image_jobs:
+        png_bytes = _render_text_image(text_value)
+        _zip_replace_image(output_path, image_path_in_zip, png_bytes)
+
+    # 6) 네임스페이스 후처리 (필수)
     fix_hwpx_namespaces(output_path)
 
     return output_path
