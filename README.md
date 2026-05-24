@@ -6,6 +6,25 @@
 
 ---
 
+## 동작 방식
+
+```mermaid
+flowchart LR
+    A[사용자<br/>'보고서 만들어줘'] --> B[Claude]
+    B --> C{양식 선택}
+    C -->|등록 양식| D[assets/report/]
+    C -->|업로드 양식| E[/mnt/user-data/uploads/]
+    D --> F[render: template + meta + data]
+    E --> G[scan_template:<br/>meta 자동 생성]
+    G --> F
+    F --> H[fix_namespaces<br/>후처리]
+    H --> I[.hwpx 결과물]
+```
+
+핵심: `render(template_dir, output, data)` 한 줄이면 모든 양식이 동일하게 처리된다.
+
+---
+
 ## 핵심 아이디어
 
 기존 방식의 문제: 양식이 바뀔 때마다 코드를 고치고, 양식이 늘어날 때마다 SKILL.md를 수정해야 한다.
@@ -66,31 +85,71 @@ render(
 
 ---
 
+## 결과물 미리보기 (텍스트)
+
+`examples/example_official_doc.py` 를 실행하면 다음과 같은 공문서가 생성된다:
+
+```
+수신  경신고등학교장
+(경유)
+제목  2026학년도 AI 활용 교사 직무연수 안내
+
+1. 관련: 교육정책과-1234(2026. 2. 1.)호
+2. 2026학년도 교사 디지털 역량 강화를 위한 AI 활용 직무연수를
+   아래와 같이 안내하오니 관심 있는 교원의 적극적인 참여 바랍니다.
+  가. 일시: 2026. 5. 30.(토) 14:00~17:00
+  나. 장소: 대구창의융합교육원 컴퓨터실
+  다. 대상: 중등 교사 30명
+  라. 내용: AI 활용 행정 업무 자동화 실습
+    1) 사전 신청: 5월 25일까지 NEIS 직무연수 신청
+    2) 필수 준비물: 노트북, 충전기
+
+붙임  2026학년도 AI 활용 교사 직무연수 계획서 1부.  끝.
+```
+
+`examples/` 폴더의 다른 예시도 같은 방식으로 실행 가능하다.
+
+---
+
 ## 디렉터리 구조
 
 ```
 hwpx-skill/
-├── SKILL.md                        # Claude가 읽는 스킬 명세 (양식 무관)
-├── README.md                       # 이 파일
+├── SKILL.md                          # Claude가 읽는 스킬 명세 (양식 무관)
+├── README.md                         # 이 파일
 ├── LICENSE
 ├── scripts/
-│   ├── render.py                   # 단일 진입점 (양식 무관)
-│   ├── scan_template.py            # 새 양식의 placeholder 자동 추출
-│   ├── verify.py                   # 렌더 결과 검증
-│   └── fix_namespaces.py           # HWPX 호환성 후처리 (자동 호출됨)
+│   ├── render.py                     # 단일 진입점 (양식 무관)
+│   ├── scan_template.py              # 새 양식의 placeholder 자동 추출
+│   ├── verify.py                     # 렌더 결과 검증
+│   └── fix_namespaces.py             # HWPX 호환성 후처리 (자동 호출됨)
 ├── assets/
-│   └── report/
-│       ├── template.hwpx
-│       └── template.meta.json
+│   ├── report/                       # 내부 보고서 (4단계 □○―※ 위계)
+│   ├── official-doc/                 # 공문서/기안문 (1.가.1) 위계)
+│   ├── parent-notice/                # 학부모 안내문(가정통신문)
+│   ├── plan/                         # 운영 계획서 (Ⅰ.Ⅱ.Ⅲ. 위계)
+│   └── meeting-minutes/              # 회의록 (정보표 + 안건/논의/결정)
 ├── references/
-│   ├── creating-new-template.md    # 새 양식 추가 가이드
-│   ├── report-style.md             # 내부 보고서 양식 규약
-│   ├── official-doc-style.md       # 공문서(기안문) 양식 규약
-│   └── xml-internals.md            # HWPX XML 내부 구조
+│   ├── creating-new-template.md      # 새 양식 추가 가이드
+│   ├── building-template-with-python.md  # 한컴오피스 없이 양식 만들기
+│   ├── report-style.md               # 내부 보고서 양식 규약
+│   ├── official-doc-style.md         # 공문서(기안문) 양식 규약
+│   └── xml-internals.md              # HWPX XML 내부 구조
 ├── examples/
-│   └── example_report.py           # 동작하는 최소 예제
+│   ├── example_report.py
+│   ├── example_official_doc.py
+│   ├── example_parent_notice.py
+│   ├── example_plan.py
+│   └── example_meeting_minutes.py
 └── evals/
-    └── evals.json                  # 스킬 평가 케이스
+    └── evals.json                    # 스킬 평가 케이스
+```
+
+각 양식 폴더는 동일한 구조:
+```
+assets/<양식종류>/
+├── template.hwpx           # 양식 본체
+└── template.meta.json      # placeholder 명세
 ```
 
 ---
@@ -201,11 +260,17 @@ API 통합은 Anthropic 공식 문서의 code execution tool 가이드를 참고
 
 ## 양식 카탈로그
 
-| 양식 | 폴더 | 용도 |
-|---|---|---|
-| 내부 보고서 | [`assets/report/`](assets/report/) | 학교·기관 내부 보고서, 추진계획서, 결과보고서 |
+| 양식 | 폴더 | 용도 | 위계 체계 |
+|---|---|---|---|
+| 내부 보고서 | [`assets/report/`](assets/report/) | 학교·기관 내부 보고서, 추진계획서, 결과보고서 | □ ○ ― ※ (4단계) |
+| 공문서(기안문) | [`assets/official-doc/`](assets/official-doc/) | 대외 공문, 기안문, 행정 공문 | 1. 가. 1) (표준) |
+| 학부모 안내문 | [`assets/parent-notice/`](assets/parent-notice/) | 가정통신문, 학부모 대상 안내·협조 요청 | 1. 2. 3. (단순) |
+| 운영 계획서 | [`assets/plan/`](assets/plan/) | 사업·프로그램 운영 계획, 학년도 운영 계획 | Ⅰ. Ⅱ. Ⅲ. (장 단위) |
+| 회의록 | [`assets/meeting-minutes/`](assets/meeting-minutes/) | 학년부/부서/위원회 회의 기록 | 안건·논의·결정 (3섹션) |
 
 > 양식 기여를 환영합니다. [`references/creating-new-template.md`](references/creating-new-template.md)의 절차를 따라 PR을 보내주세요.
+
+> **참고**: `report` 양식을 제외한 나머지 4종은 python-hwpx로 생성된 **단순한 골격 양식**입니다. 한컴오피스에서 열어 학교 로고, 머리글/바닥글, 글꼴, 디자인을 보완하면 더 좋은 결과물이 됩니다. 학교에 이미 공식 양식이 있다면 그것을 업로드하여 `scripts/scan_template.py`로 처리하는 것이 가장 적합합니다.
 
 ---
 
