@@ -1,0 +1,55 @@
+{
+  "skill_name": "hwpx",
+  "description": "양식 + 메타파일 기반 HWPX 문서 생성 스킬의 평가 케이스",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "보고서 양식으로 한글 문서를 만들어줘. 기관은 '경신고등학교', 제목은 '2026년 AI 활용 교사 연수 결과', 작성일은 오늘. 섹션은 추진 배경/추진 경과/주요 성과/향후 계획 4개로 구성.",
+      "expected_output": "내부 보고서 양식의 .hwpx 파일",
+      "files": [],
+      "assertions": [
+        "출력 파일이 .hwpx 확장자를 가진다",
+        "assets/report/template.hwpx 를 기반으로 한다",
+        "render() 함수 한 번의 호출로 생성된다",
+        "표지에 기관명과 제목이 들어가 있다",
+        "작성일이 'YYYY. M. D.' 형식이다 (월·일 앞 0 없음)",
+        "섹션 구분 바의 제목 텍스트가 치환되었다",
+        "fix_hwpx_namespaces 후처리가 자동 수행되었다 (render 내부)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "내가 첨부한 .hwpx 양식 파일을 보고, 빈자리들이 어떤 placeholder인지 자동으로 분석해줘. 그리고 각 자리에 어떤 값을 넣을지 사용자에게 확인하는 방식으로 진행해줘.",
+      "expected_output": "scan_template.py 로 생성된 meta.json + 사용자 확인 후 렌더링된 .hwpx",
+      "files": ["custom-template.hwpx"],
+      "assertions": [
+        "사용자 업로드 양식이 등록 양식보다 우선 사용된다",
+        "scan_template.py 가 호출되어 placeholder 후보가 추출된다",
+        "후보를 사용자에게 보여주고 의미를 확인받는다",
+        "확정된 메타로 render() 가 호출된다",
+        "결과 .hwpx 가 outputs/에 저장된다"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "보고서를 만들되, 본문 1단계 항목으로 10개의 내용을 넣고 싶어. 양식이 8자리만 지원하면 어떻게 되는지 알려줘.",
+      "expected_output": "양식의 max_count 한계에 대한 명확한 안내 + 8개로 잘려서 렌더링되거나, 양식 확장 권고",
+      "files": [],
+      "assertions": [
+        "메타파일의 max_count 한계를 인식한다",
+        "사용자에게 양식의 슬롯 개수 한계를 명확히 설명한다",
+        "잘림(truncate) 또는 양식 확장 두 가지 선택지를 제시한다"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "한글 문서가 아니라 그냥 메모리에 짧은 한글 텍스트만 처리해줘.",
+      "expected_output": "이 스킬은 사용하지 않고 일반 텍스트로 응답",
+      "files": [],
+      "assertions": [
+        "양식이 필요한 문서가 아니므로 hwpx 스킬을 호출하지 않는다",
+        "일반 chat 응답으로 처리한다"
+      ]
+    }
+  ]
+}
