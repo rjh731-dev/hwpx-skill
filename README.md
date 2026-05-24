@@ -51,8 +51,10 @@ assets/
 ### 1) 의존성 설치
 
 ```bash
-pip install python-hwpx
+pip install python-hwpx Pillow
 ```
+
+`Pillow`는 `image_text` 필드(학교명을 로고 자리에 텍스트 이미지로 표시)를 사용할 때 필요합니다. 이 기능을 사용하지 않으면 `python-hwpx` 만 설치해도 됩니다.
 
 ### 2) 보고서 한 부 생성
 
@@ -255,6 +257,7 @@ API 통합은 Anthropic 공식 문서의 code execution tool 가이드를 참고
 | `single` | placeholder 등장 위치 모두 같은 값으로 치환 | 문자열 |
 | `sequential` | 등장 위치를 순서대로 다른 값으로 치환 | 리스트 |
 | `date` | "today" / 문자열 / date 객체를 `format` 으로 변환 | 문자열/date/`"today"` |
+| `image_text` | 텍스트를 PNG 이미지로 만들어 ZIP 내부 이미지를 교체 (학교명을 로고 자리에 표시할 때) | 문자열 |
 
 ---
 
