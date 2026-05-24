@@ -193,6 +193,12 @@ python scripts/verify.py result.hwpx assets/report/template.meta.json
 | 양식 종류 | 폴더 | 주 용도 |
 |---|---|---|
 | 내부 보고서 | `assets/report/` | 학교·기관 내부 보고서, 추진계획서, 결과보고서 등 |
+| 공문서(기안문) | `assets/official-doc/` | 대외 공문, 기안문, 행정 공문 등 표준 공문 |
+| 학부모 안내문 | `assets/parent-notice/` | 가정통신문, 학부모 대상 안내·협조 요청 |
+| 운영 계획서 | `assets/plan/` | 사업·프로그램 운영 계획, 학년도 운영 계획 |
+| 회의록 | `assets/meeting-minutes/` | 학년부/부서/위원회 회의 기록 (정보표 + 안건/논의/결정) |
+
+양식 선택 시 사용자 요청과 각 양식의 `name`·`description` 을 비교한다. 예: "기안문 만들어줘" → `official-doc`, "회의 결과 정리해줘" → `meeting-minutes`.
 
 (추가 양식은 위 절차대로 PR/issue로 기여 가능)
 
@@ -206,6 +212,7 @@ python scripts/verify.py result.hwpx assets/report/template.meta.json
 - `references/official-doc-style.md` — 공문서(기안문) 양식 규약
 - `references/xml-internals.md` — HWPX XML 내부 구조 (저수준 조작 시)
 - `references/creating-new-template.md` — 새 양식을 만들 때의 디자인 원칙
+- `references/building-template-with-python.md` — 한컴오피스 없이 python-hwpx로 양식 만들기
 
 ---
 
