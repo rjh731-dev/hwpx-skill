@@ -12,6 +12,13 @@
       "max_length": 30
     },
     {
+      "key": "기관명_로고",
+      "placeholder": "BinData/image1.png",
+      "type": "image_text",
+      "required": false,
+      "description": "표지·목차 페이지의 로고 영역에 표시될 기관명 텍스트. 양식의 두 위치(표지 상단, 목차 페이지 우측)에 동일하게 표시됨. 보통 '기관명' 필드와 같은 값을 사용. 한컴오피스에서 학교 로고 이미지로 직접 교체하고 싶다면 이 필드를 비워두고 양식을 한글에서 편집."
+    },
+    {
       "key": "보고서_제목",
       "placeholder": "기본 보고서 양식",
       "type": "single",
